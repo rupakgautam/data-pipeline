@@ -402,3 +402,17 @@ def pipeline_runs(
 ):
     """Pipeline run history. ADMIN ONLY."""
     return db.query(DBRun).order_by(DBRun.run_at.desc()).all()
+@app.get("/api/v1/users/department/{dept}", response_model=list[UserOut], tags=["Users"])
+def users_by_department(
+    dept:   str,
+    db:     Session = Depends(get_db),
+    caller: dict    = Depends(rate_limit),
+):
+    """
+    Get all users in a specific department.
+    Example: /api/v1/users/department/Engineering
+    """
+    users = db.query(DBUser).filter(DBUser.department == dept).all()
+    if not users:
+        raise HTTPException(404, f"No users found in department: {dept}")
+    return [to_out(u) for u in users]
