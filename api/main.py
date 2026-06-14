@@ -343,6 +343,28 @@ def stats(
     }
 
 
+@app.get("/api/v1/users/active/summary", tags=["Users"])
+def active_users_summary(
+    db:     Session = Depends(get_db),
+    caller: dict    = Depends(rate_limit),
+):
+    """
+    Return only active users along with their average salary.
+    Requires any valid API key. Defined before /users/{user_id} so the
+    static path is not shadowed by the dynamic route.
+    """
+    active = db.query(DBUser).filter(DBUser.is_active == True).all()
+    if not active:
+        raise HTTPException(404, "No active users found")
+    salaries = [u.salary for u in active if u.salary is not None]
+    return {
+        "active_user_count": len(active),
+        "average_salary": round(sum(salaries) / len(salaries), 2) if salaries else None,
+        "users": [to_out(u) for u in active],
+        "requested_by": caller["role"],
+    }
+
+
 @app.get("/api/v1/users/{user_id}", response_model=UserOut, tags=["Users"])
 def get_user(
     user_id: str,
